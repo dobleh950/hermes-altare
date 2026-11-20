@@ -1,0 +1,22 @@
+model:
+  provider: custom:centai
+  base_url: http://127.0.0.1:8787/v1
+  api_key: dummy-placeholder-key
+  default: hy4-flash:free
+providers:
+  centai:
+    name: centai
+    base_url: http://127.0.0.1:8787/v1
+    api_key: dummy-placeholder-key
+    model: hy4-flash:free
+  freemodel:
+    name: freemodel
+    base_url: http://127.0.0.1:8787/v1
+    api_key: dummy-placeholder-key
+    model: gpt-6-astra
+platforms:
+  telegram:
+    enabled: true
+onboarding:
+  seen:
+    busy_input_prompt: true
