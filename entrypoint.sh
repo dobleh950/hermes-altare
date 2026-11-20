@@ -44,10 +44,11 @@ printf 'TELEGRAM_BOT_TOKEN=%s\nTELEGRAM_ALLOWED_USERS=%s\n' \
   "$TELEGRAM_BOT_TOKEN" "$TELEGRAM_ALLOWED_USERS" > "$HOME/.hermes/.env"
 chmod 600 "$HOME/.hermes/.env"
 
-# Config: only on first run, so redeploys keep existing state.
-if [ ! -f "$HOME/.hermes/config.yaml" ]; then
-  cp "$SCRIPT_DIR/config.yaml" "$HOME/.hermes/config.yaml"
-fi
+# Config: ALWAYS from the repo — the repo is the source of truth for the
+# model/provider (Cent AI). This also reverts a bad model change Hermes
+# made to its own live config (e.g. switching to OpenRouter, which the
+# relay does not serve), since a plain restart would keep the broken file.
+cp "$SCRIPT_DIR/config.yaml" "$HOME/.hermes/config.yaml"
 
 # BAW skill: only if missing (the repo copy is the source of truth).
 if [ ! -d "$HOME/.hermes/skills/binance-agentic-wallet" ]; then
