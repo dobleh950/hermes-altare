@@ -56,10 +56,15 @@ chmod 600 "$HOME/.hermes/.env"
 # relay does not serve), since a plain restart would keep the broken file.
 cp "$SCRIPT_DIR/config.yaml" "$HOME/.hermes/config.yaml"
 
-# BAW skill: only if missing (the repo copy is the source of truth).
-if [ ! -d "$HOME/.hermes/skills/binance-agentic-wallet" ]; then
-  cp -r "$SCRIPT_DIR/skills/binance-agentic-wallet" "$HOME/.hermes/skills/binance-agentic-wallet"
-fi
+# Skills: seed EVERY skill dir from the repo (missing ones only). The repo
+# is the source of truth — a skill Hermes installs itself at runtime is
+# lost on redeploy, a skill in the repo survives.
+for skill_dir in "$SCRIPT_DIR"/skills/*/; do
+  skill_name="$(basename "$skill_dir")"
+  if [ ! -d "$HOME/.hermes/skills/$skill_name" ]; then
+    cp -r "$skill_dir" "$HOME/.hermes/skills/$skill_name"
+  fi
+done
 
 # Telegram pairing approval (seed): only if missing. This file holds no
 # secret — just user 1385201625 approved — and lets the gateway recognise
