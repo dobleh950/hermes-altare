@@ -47,11 +47,13 @@ Secrets arrive as Altare app env vars at runtime:
 | `DATA_DIR` | (optional) Altare persistent data folder path |
 | `PORT` | (optional, default `8080`) Altare sets this |
 
-## Deploy on Altare
+## Deploy on Altare — Docker (preferred if offered)
 
 1. Push this repo to GitHub (account `dobleh950` is already
    connected to Altare).
 2. Altare console → **Create app** → **GitHub** tab → pick this repo.
+   If the Runtime dropdown offers **Docker**, pick it: Altare builds
+   the `Dockerfile` and no commands need changing.
    Altare rebuilds on every push.
 3. Set the env vars above in the app's environment settings
    (mark the token/key as secret).
@@ -59,6 +61,33 @@ Secrets arrive as Altare app env vars at runtime:
    `[health] listening`, then the gateway connecting to Telegram.
 5. Verify: send the bot a Telegram message (e.g. `cek wallet`).
    It should reply from `hy4-flash:free` via Cent AI.
+
+## Deploy on Altare — Python buildpack
+
+If Altare detects **Python** instead of the Dockerfile (it prefilled
+`npm ci` / `npm start` — those are wrong for this repo), use these
+exact values in the "Build and run" step:
+
+| Field | Value |
+| --- | --- |
+| Runtime | `Python 3.13` |
+| Branch | `main` |
+| Root directory | `./` |
+| Install command | `pip install -r requirements.txt && (npm install -g @binance/agentic-wallet@1.12.0 \|\| true)` |
+| Build command | `None` |
+| Start command | `bash entrypoint.sh` |
+
+Set the same env vars as above (`TELEGRAM_BOT_TOKEN`,
+`TELEGRAM_ALLOWED_USERS=1385201625`, `CENTAI_API_KEY`) in the
+**Environment variables** section, then **Continue** and deploy.
+`entrypoint.sh` resolves all paths from its own directory, so it
+runs from the app root with no `/app` and no venv; it finds `hermes`
+on PATH (from `pip install -r requirements.txt`), creates the `kart`
+shim best-effort if `node` exists, and execs the gateway in the
+foreground. The BAW npm install in the install command is
+best-effort (`|| true`) — the start must not fail if it is skipped.
+**Note:** if the Runtime dropdown offers Docker, pick Docker
+instead — the Dockerfile path needs no command changes.
 
 ## Verify locally (no Docker needed for these checks)
 
@@ -97,9 +126,10 @@ node kart-cli/kart.mjs help        # kart 0.26.0, no login needed
 | File | What it is |
 | --- | --- |
 | `Dockerfile` | `python:3.12-slim` + Node 24 + `hermes-agent==0.19.0` + BAW 1.12.0 + kart 0.26.0 |
+| `requirements.txt` | `hermes-agent==0.19.0` — for the Altare Python buildpack install command |
 | `relay-altare.py` | Cent AI relay, key from env, loopback only |
 | `health.py` | `/health` server on `$PORT` |
-| `entrypoint.sh` | NO_PROXY sanitize, writes `.env`, seeds state, starts relay + health, execs gateway |
+| `entrypoint.sh` | NO_PROXY sanitize, writes `.env`, seeds state, starts relay + health, execs gateway — path-agnostic (works from `/app` in Docker and from the app root in the buildpack) |
 | `config.yaml` | Hermes config (dummy placeholder key only) |
 | `pairing/telegram-approved.json` | Pairing seed for user 1385201625 (no secret) |
 | `skills/binance-agentic-wallet/` | The only skill, exact copy of the VM's (20 files) |
