@@ -1,8 +1,8 @@
 model:
-  provider: custom:openrouter
+  provider: custom:centai
   base_url: http://127.0.0.1:8787/v1
   api_key: dummy-placeholder-key
-  default: nvidia/nemotron-3-ultra-550b-a55b:free
+  default: hy4-flash:free
 providers:
   openrouter:
     name: openrouter
