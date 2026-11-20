@@ -10,10 +10,12 @@
 # - Sanitizes NO_PROXY (httpx mis-parses bracketed IPv6 entries; Hermes
 #   only needs the loopback relay).
 # - Writes ~/.hermes/.env (0600) from env vars (secrets are never in the image).
-# - Seeds config.yaml, the BAW skill and the Telegram pairing approval on
-#   first run only; existing state is kept on redeploy.
-# - Starts the Cent AI relay (loopback only) + health server (public $PORT)
-#   in the background, then execs the Telegram gateway in the foreground.
+# - Restores config.yaml from the repo on every start (repo = source of
+#   truth for the model/provider); seeds the BAW skill and the Telegram
+#   pairing approval on first run only.
+# - Starts the model relay (OpenRouter if OPENROUTER_API_KEY is set, else
+#   Cent AI; loopback only) + health server (public $PORT) in the
+#   background, then execs the Telegram gateway in the foreground.
 set -euo pipefail
 
 # Repo root = directory this script lives in, resolved to absolute.
@@ -36,7 +38,11 @@ fi
 mkdir -p "$HOME/.hermes" "$HOME/.hermes/skills" "$HOME/.hermes/platforms/pairing"
 
 : "${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN env var is required}"
-: "${CENTAI_API_KEY:?CENTAI_API_KEY env var is required}"
+# Model key: OpenRouter wins when set, else Cent AI (at least one is needed).
+if [ -z "${OPENROUTER_API_KEY:-}" ] && [ -z "${CENTAI_API_KEY:-}" ]; then
+  echo "[entrypoint] FATAL: set OPENROUTER_API_KEY or CENTAI_API_KEY env var" >&2
+  exit 1
+fi
 TELEGRAM_ALLOWED_USERS="${TELEGRAM_ALLOWED_USERS:-1385201625}"
 
 # Gateway reads the token from ~/.hermes/.env (0600), as on the VM.

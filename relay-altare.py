@@ -1,25 +1,22 @@
 #!/usr/bin/env python3
-"""Altare relay: Hermes -> http://127.0.0.1:8787/v1 -> https://api.cent-ai.dev/v1
+"""Altare relay: Hermes -> http://127.0.0.1:8787/v1 -> OpenRouter or Cent AI.
 
-Adapted from ~/workspace/hermes-install/relay.py for deployment on
-Altare (or any plain container host) where there is NO Secure Vault.
+Upstream is chosen by env var (OpenRouter wins when set):
+- OPENROUTER_API_KEY set -> https://openrouter.ai (model from config.yaml,
+  e.g. nvidia/nemotron-3-ultra-550b-a55b:free, $0 but rate-limited).
+- else CENTAI_API_KEY set -> https://api.cent-ai.dev (hy4-flash:free, $0).
 
-Difference from the VM relay: the Cent AI API key comes from the
-CENTAI_API_KEY environment variable, read once at startup. The key is
-never written to a file or a log; it is only attached server-side as
-the Authorization header on outbound requests to api.cent-ai.dev.
-The relay binds 127.0.0.1:8787 ONLY, so it is never reachable from
-outside the container — the key cannot leak through the relay port.
+The key comes from the environment, read once at startup. It is never
+written to a file or a log; it is only attached server-side as the
+Authorization header on outbound requests. The relay binds 127.0.0.1:8787
+ONLY, so it is never reachable from outside the container.
 
 Endpoints forwarded: GET /v1/models, POST /v1/chat/completions (both
 streaming SSE and plain JSON). Responses are streamed chunk-by-chunk
-to the client, never buffered whole. Cent AI's base is /v1, so BASE
-is https://api.cent-ai.dev and the incoming /v1/* path is appended
-as-is.
+to the client, never buffered whole.
 
-Required env: CENTAI_API_KEY (set in Altare as an app env var/secret).
-Model served through this relay: hy4-flash:free (Cent AI free variant,
-$0.00/token). See config.yaml (model.default).
+Required env: OPENROUTER_API_KEY or CENTAI_API_KEY (set in Altare as
+an app env var/secret).
 """
 import json
 import os
@@ -28,13 +25,19 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 CENTAI_API_KEY = os.environ.get("CENTAI_API_KEY", "")
-if not CENTAI_API_KEY:
-    sys.stderr.write("[relay-altare] FATAL: CENTAI_API_KEY env var is not set\n")
+if OPENROUTER_API_KEY:
+    HOST = "openrouter.ai"
+    API_KEY = OPENROUTER_API_KEY
+elif CENTAI_API_KEY:
+    HOST = "api.cent-ai.dev"
+    API_KEY = CENTAI_API_KEY
+else:
+    sys.stderr.write("[relay-altare] FATAL: set OPENROUTER_API_KEY or CENTAI_API_KEY env var\n")
     sys.stderr.flush()
     sys.exit(1)
 
-HOST = "api.cent-ai.dev"
 BASE = f"https://{HOST}"
 LISTEN_HOST = "127.0.0.1"
 LISTEN_PORT = 8787
@@ -68,7 +71,10 @@ class Handler(BaseHTTPRequestHandler):
         if body is not None:
             req.add_header("Content-Type", "application/json")
         # Key from env only; attached server-side, never logged or stored.
-        req.add_header("Authorization", f"Bearer {CENTAI_API_KEY}")
+        req.add_header("Authorization", f"Bearer {API_KEY}")
+        if HOST == "openrouter.ai":
+            req.add_header("HTTP-Referer", "https://github.com/dobleh950/hermes-altare")
+            req.add_header("X-Title", "Hermes Altare")
         try:
             with urllib.request.build_opener(NoRedirect()).open(
                 req, data=body, timeout=300
