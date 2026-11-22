@@ -2,7 +2,7 @@
 """Altare relay: Hermes -> http://127.0.0.1:8787/v1 -> OpenRouter or Cent AI.
 
 Upstream is chosen by env var (OpenRouter wins when set):
-- OPENROUTER_API_KEY set -> https://openrouter.ai (model from config.yaml,
+- OPENROUTER_API_KEY set -> https://openrouter.ai/api/v1 (model from config.yaml,
   e.g. nvidia/nemotron-3-ultra-550b-a55b:free, $0 but rate-limited).
 - else CENTAI_API_KEY set -> https://api.cent-ai.dev (hy4-flash:free, $0).
 
@@ -44,7 +44,15 @@ else:
     sys.stderr.flush()
     sys.exit(1)
 
-BASE = f"https://{HOST}"
+BASE = (
+    # OpenRouter serves its OpenAI-compatible API under /api/v1, while
+    # Cent AI serves it under /v1 — same relay path, different base prefix.
+    # (Without /api, openrouter.ai answers /v1/* with its website's HTML
+    # 404 page, which the agent reports as a non-retryable client error.)
+    "https://openrouter.ai/api"
+    if HOST == "openrouter.ai"
+    else f"https://{HOST}"
+)
 UPSTREAM_MODEL = (
     "nvidia/nemotron-3-ultra-550b-a55b:free"
     if HOST == "openrouter.ai"
