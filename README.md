@@ -15,9 +15,10 @@ container with no Secure Vault and no interactive shell.
 
 - **Relay** (`relay-altare.py`) listens on `127.0.0.1:8787` only and
   forwards Hermes's OpenAI-compatible requests (`/v1/*`, SSE
-  supported) to `https://api.cent-ai.dev/v1`, attaching the Cent AI
-  key from the `CENTAI_API_KEY` env var. The relay is loopback-only,
-  so the key never leaves the container.
+  supported) to the upstream chosen by env var: samp.team
+  (`https://api.samp.team/v1`, model `gpt-6.2-astra`) when
+  `SAMP_API_KEY` is set, else OpenRouter, else Cent AI. The relay is
+  loopback-only, so the key never leaves the container.
 - **Gateway** (`hermes gateway run`, foreground) polls Telegram.
   Token comes from the `TELEGRAM_BOT_TOKEN` env var, written to
   `~/.hermes/.env` (0600) at container start.
@@ -43,6 +44,7 @@ Secrets arrive as Altare app env vars at runtime:
 | --- | --- |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token (from @BotFather) |
 | `TELEGRAM_ALLOWED_USERS` | `1385201625` (dobleh only) |
+| `SAMP_API_KEY` | samp.team API key (model `gpt-6.2-astra`) |
 | `CENTAI_API_KEY` | Cent AI API key |
 | `DATA_DIR` | (optional) Altare persistent data folder path |
 | `PORT` | (optional, default `8080`) Altare sets this |

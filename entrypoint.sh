@@ -13,9 +13,10 @@
 # - Restores config.yaml from the repo on every start (repo = source of
 #   truth for the model/provider); seeds the BAW skill and the Telegram
 #   pairing approval on first run only.
-# - Starts the model relay (OpenRouter if OPENROUTER_API_KEY is set, else
-#   Cent AI; loopback only) + health server (public $PORT) in the
-#   background, then execs the Telegram gateway in the foreground.
+# - Starts the model relay (samp.team if SAMP_API_KEY is set, else
+#   OpenRouter if OPENROUTER_API_KEY is set, else Cent AI; loopback
+#   only) + health server (public $PORT) in the background, then
+#   execs the Telegram gateway in the foreground.
 set -euo pipefail
 
 # Repo root = directory this script lives in, resolved to absolute.
@@ -38,9 +39,10 @@ fi
 mkdir -p "$HOME/.hermes" "$HOME/.hermes/skills" "$HOME/.hermes/platforms/pairing"
 
 : "${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN env var is required}"
-# Model key: OpenRouter wins when set, else Cent AI (at least one is needed).
-if [ -z "${OPENROUTER_API_KEY:-}" ] && [ -z "${CENTAI_API_KEY:-}" ]; then
-  echo "[entrypoint] FATAL: set OPENROUTER_API_KEY or CENTAI_API_KEY env var" >&2
+# Model key: samp.team wins when set, else OpenRouter, else Cent AI
+# (at least one is needed).
+if [ -z "${SAMP_API_KEY:-}" ] && [ -z "${OPENROUTER_API_KEY:-}" ] && [ -z "${CENTAI_API_KEY:-}" ]; then
+  echo "[entrypoint] FATAL: set SAMP_API_KEY, OPENROUTER_API_KEY or CENTAI_API_KEY env var" >&2
   exit 1
 fi
 TELEGRAM_ALLOWED_USERS="${TELEGRAM_ALLOWED_USERS:-1385201625}"
@@ -98,7 +100,7 @@ else
   echo "[entrypoint] node not found, kart shim skipped"
 fi
 
-# Cent AI relay (background, loopback only — the paid key never leaves
+# samp.team relay (background, loopback only — the key never leaves
 # the container) and health server (background, public $PORT).
 python3 "$SCRIPT_DIR/relay-altare.py" >> "$HOME/relay.log" 2>&1 &
 python3 "$SCRIPT_DIR/health.py" >> "$HOME/health.log" 2>&1 &
