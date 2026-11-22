@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
-"""Altare relay: Hermes -> http://127.0.0.1:8787/v1 -> samp.team, OpenRouter or Cent AI.
+"""Altare relay: Hermes -> http://127.0.0.1:8787/v1 -> samp.team or Cent AI.
 
 Upstream is chosen by env var (samp.team wins when set):
 - SAMP_API_KEY set -> https://api.samp.team (model gpt-6.2-astra).
-- else OPENROUTER_API_KEY set -> https://openrouter.ai/api/v1 (model from config.yaml,
-  e.g. nvidia/nemotron-3-ultra-550b-a55b:free, $0 but rate-limited).
 - else CENTAI_API_KEY set -> https://api.cent-ai.dev (deepseek-v4.1-flash:free, $0).
 
 The relay rewrites the requested `model` in chat-completion bodies to the
 model that belongs to the chosen upstream (see UPSTREAM_MODEL below), so
 Hermes keeps working whichever key is set: with the samp.team key present
-the bot talks to samp.team, without it it falls back to OpenRouter or
-Cent AI instead of sending an unknown model name to the wrong upstream
-and breaking.
+the bot talks to samp.team, without it it falls back to Cent AI instead
+of sending an unknown model name to the wrong upstream and breaking.
 
 The key comes from the environment, read once at startup. It is never
 written to a file or a log; it is only attached server-side as the
@@ -23,7 +20,7 @@ Endpoints forwarded: GET /v1/models, POST /v1/chat/completions (both
 streaming SSE and plain JSON). Responses are streamed chunk-by-chunk
 to the client, never buffered whole.
 
-Required env: SAMP_API_KEY, OPENROUTER_API_KEY or CENTAI_API_KEY (set in Altare as
+Required env: SAMP_API_KEY or CENTAI_API_KEY (set in Altare as
 an app env var/secret).
 """
 import json
@@ -33,38 +30,25 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 CENTAI_API_KEY = os.environ.get("CENTAI_API_KEY", "")
 SAMP_API_KEY = os.environ.get("SAMP_API_KEY", "")
 if SAMP_API_KEY:
     HOST = "api.samp.team"
     API_KEY = SAMP_API_KEY
-elif OPENROUTER_API_KEY:
-    HOST = "openrouter.ai"
-    API_KEY = OPENROUTER_API_KEY
 elif CENTAI_API_KEY:
     HOST = "api.cent-ai.dev"
     API_KEY = CENTAI_API_KEY
 else:
-    sys.stderr.write("[relay-altare] FATAL: set SAMP_API_KEY, OPENROUTER_API_KEY or CENTAI_API_KEY env var\n")
+    sys.stderr.write("[relay-altare] FATAL: set SAMP_API_KEY or CENTAI_API_KEY env var\n")
     sys.stderr.flush()
     sys.exit(1)
 
-BASE = (
-    # OpenRouter serves its OpenAI-compatible API under /api/v1, while
-    # samp.team and Cent AI serve it under /v1 — same relay path,
-    # different base prefix.
-    # (Without /api, openrouter.ai answers /v1/* with its website's HTML
-    # 404 page, which the agent reports as a non-retryable client error.)
-    "https://openrouter.ai/api"
-    if HOST == "openrouter.ai"
-    else f"https://{HOST}"
-)
+# Both upstreams serve their OpenAI-compatible API under /v1, so the
+# base is just the host; the relay appends the /v1/* path as-is.
+BASE = f"https://{HOST}"
 UPSTREAM_MODEL = (
     "gpt-6.2-astra"
     if HOST == "api.samp.team"
-    else "nvidia/nemotron-3-ultra-550b-a55b:free"
-    if HOST == "openrouter.ai"
     else "deepseek-v4.1-flash:free"
 )
 LISTEN_HOST = "127.0.0.1"
@@ -110,9 +94,6 @@ class Handler(BaseHTTPRequestHandler):
             req.add_header("Content-Type", "application/json")
         # Key from env only; attached server-side, never logged or stored.
         req.add_header("Authorization", f"Bearer {API_KEY}")
-        if HOST == "openrouter.ai":
-            req.add_header("HTTP-Referer", "https://github.com/dobleh950/hermes-altare")
-            req.add_header("X-Title", "Hermes Altare")
         try:
             with urllib.request.build_opener(NoRedirect()).open(
                 req, data=body, timeout=300

@@ -17,7 +17,7 @@ container with no Secure Vault and no interactive shell.
   forwards Hermes's OpenAI-compatible requests (`/v1/*`, SSE
   supported) to the upstream chosen by env var: samp.team
   (`https://api.samp.team/v1`, model `gpt-6.2-astra`) when
-  `SAMP_API_KEY` is set, else OpenRouter, else Cent AI. The relay is
+  `SAMP_API_KEY` is set, else Cent AI. The relay is
   loopback-only, so the key never leaves the container.
 - **Gateway** (`hermes gateway run`, foreground) polls Telegram.
   Token comes from the `TELEGRAM_BOT_TOKEN` env var, written to

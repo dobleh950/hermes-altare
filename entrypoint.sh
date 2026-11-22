@@ -14,9 +14,8 @@
 #   truth for the model/provider); seeds the BAW skill and the Telegram
 #   pairing approval on first run only.
 # - Starts the model relay (samp.team if SAMP_API_KEY is set, else
-#   OpenRouter if OPENROUTER_API_KEY is set, else Cent AI; loopback
-#   only) + health server (public $PORT) in the background, then
-#   execs the Telegram gateway in the foreground.
+#   Cent AI; loopback only) + health server (public $PORT) in the
+#   background, then execs the Telegram gateway in the foreground.
 set -euo pipefail
 
 # Repo root = directory this script lives in, resolved to absolute.
@@ -39,10 +38,9 @@ fi
 mkdir -p "$HOME/.hermes" "$HOME/.hermes/skills" "$HOME/.hermes/platforms/pairing"
 
 : "${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN env var is required}"
-# Model key: samp.team wins when set, else OpenRouter, else Cent AI
-# (at least one is needed).
-if [ -z "${SAMP_API_KEY:-}" ] && [ -z "${OPENROUTER_API_KEY:-}" ] && [ -z "${CENTAI_API_KEY:-}" ]; then
-  echo "[entrypoint] FATAL: set SAMP_API_KEY, OPENROUTER_API_KEY or CENTAI_API_KEY env var" >&2
+# Model key: samp.team wins when set, else Cent AI (at least one is needed).
+if [ -z "${SAMP_API_KEY:-}" ] && [ -z "${CENTAI_API_KEY:-}" ]; then
+  echo "[entrypoint] FATAL: set SAMP_API_KEY or CENTAI_API_KEY env var" >&2
   exit 1
 fi
 TELEGRAM_ALLOWED_USERS="${TELEGRAM_ALLOWED_USERS:-1385201625}"
@@ -53,9 +51,9 @@ printf 'TELEGRAM_BOT_TOKEN=%s\nTELEGRAM_ALLOWED_USERS=%s\n' \
 chmod 600 "$HOME/.hermes/.env"
 
 # Config: ALWAYS from the repo — the repo is the source of truth for the
-# model/provider (Cent AI). This also reverts a bad model change Hermes
-# made to its own live config (e.g. switching to OpenRouter, which the
-# relay does not serve), since a plain restart would keep the broken file.
+# model/provider. This also reverts a bad model change Hermes
+# made to its own live config (e.g. switching to a model the relay
+# does not serve), since a plain restart would keep the broken file.
 cp "$SCRIPT_DIR/config.yaml" "$HOME/.hermes/config.yaml"
 
 # Skills: seed EVERY skill dir from the repo (missing ones only). The repo
