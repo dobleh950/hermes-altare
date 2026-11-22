@@ -2,7 +2,7 @@
 """Altare relay: Hermes -> http://127.0.0.1:8787/v1 -> samp.team or Cent AI.
 
 Upstream is chosen by env var (samp.team wins when set):
-- SAMP_API_KEY set -> https://api.samp.team (model gemini-4-argon).
+- SAMP_API_KEY set -> https://api.samp.team (model gpt-6-luna).
 - else CENTAI_API_KEY set -> https://api.cent-ai.dev (deepseek-v4.1-flash:free, $0).
 
 The relay rewrites the requested `model` in chat-completion bodies to the
@@ -47,7 +47,7 @@ else:
 # base is just the host; the relay appends the /v1/* path as-is.
 BASE = f"https://{HOST}"
 UPSTREAM_MODEL = (
-    "gemini-4-argon"
+    "gpt-6-luna"
     if HOST == "api.samp.team"
     else "deepseek-v4.1-flash:free"
 )
