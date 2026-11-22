@@ -13,7 +13,7 @@ providers:
     name: centai
     base_url: http://127.0.0.1:8787/v1
     api_key: dummy-placeholder-key
-    model: hy4-flash:free
+    model: deepseek-v4.1-flash:free
   freemodel:
     name: freemodel
     base_url: http://127.0.0.1:8787/v1

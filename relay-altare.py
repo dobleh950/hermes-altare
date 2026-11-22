@@ -4,7 +4,7 @@
 Upstream is chosen by env var (OpenRouter wins when set):
 - OPENROUTER_API_KEY set -> https://openrouter.ai/api/v1 (model from config.yaml,
   e.g. nvidia/nemotron-3-ultra-550b-a55b:free, $0 but rate-limited).
-- else CENTAI_API_KEY set -> https://api.cent-ai.dev (hy4-flash:free, $0).
+- else CENTAI_API_KEY set -> https://api.cent-ai.dev (deepseek-v4.1-flash:free, $0).
 
 The relay rewrites the requested `model` in chat-completion bodies to the
 model that belongs to the chosen upstream (see UPSTREAM_MODEL below), so
@@ -56,7 +56,7 @@ BASE = (
 UPSTREAM_MODEL = (
     "nvidia/nemotron-3-ultra-550b-a55b:free"
     if HOST == "openrouter.ai"
-    else "hy4-flash:free"
+    else "deepseek-v4.1-flash:free"
 )
 LISTEN_HOST = "127.0.0.1"
 LISTEN_PORT = 8787
