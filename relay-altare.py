@@ -6,6 +6,12 @@ Upstream is chosen by env var (OpenRouter wins when set):
   e.g. nvidia/nemotron-3-ultra-550b-a55b:free, $0 but rate-limited).
 - else CENTAI_API_KEY set -> https://api.cent-ai.dev (hy4-flash:free, $0).
 
+The relay rewrites the requested `model` in chat-completion bodies to the
+model that belongs to the chosen upstream (see UPSTREAM_MODEL below), so
+Hermes keeps working whichever key is set: with the OpenRouter key present
+the bot talks to OpenRouter, without it it falls back to Cent AI instead of
+sending an unknown model name to the wrong upstream and breaking.
+
 The key comes from the environment, read once at startup. It is never
 written to a file or a log; it is only attached server-side as the
 Authorization header on outbound requests. The relay binds 127.0.0.1:8787
@@ -39,6 +45,11 @@ else:
     sys.exit(1)
 
 BASE = f"https://{HOST}"
+UPSTREAM_MODEL = (
+    "nvidia/nemotron-3-ultra-550b-a55b:free"
+    if HOST == "openrouter.ai"
+    else "hy4-flash:free"
+)
 LISTEN_HOST = "127.0.0.1"
 LISTEN_PORT = 8787
 UA = (
@@ -66,6 +77,16 @@ class Handler(BaseHTTPRequestHandler):
             return
         length = int(self.headers.get("Content-Length") or 0)
         body = self.rfile.read(length) if length else None
+        if body:
+            # Rewrite the requested model to the one this upstream serves;
+            # anything unparseable is forwarded untouched.
+            try:
+                payload = json.loads(body)
+            except ValueError:
+                payload = None
+            if isinstance(payload, dict) and "model" in payload:
+                payload["model"] = UPSTREAM_MODEL
+                body = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(BASE + path, method=method)
         req.add_header("User-Agent", UA)
         if body is not None:
