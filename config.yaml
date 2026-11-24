@@ -2,7 +2,7 @@ model:
   provider: custom:centai
   base_url: http://127.0.0.1:8787/v1
   api_key: dummy-placeholder-key
-  default: nvidia/nemotron-3-ultra-550b-a55b:free
+  default: hy4-flash:free
 providers:
   openrouter:
     name: openrouter
@@ -13,7 +13,7 @@ providers:
     name: centai
     base_url: http://127.0.0.1:8787/v1
     api_key: dummy-placeholder-key
-    model: deepseek-v4.1-flash:free
+    model: hy4-flash:free
   freemodel:
     name: freemodel
     base_url: http://127.0.0.1:8787/v1
