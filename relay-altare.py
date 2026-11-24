@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Altare relay: Hermes -> http://127.0.0.1:8787/v1 -> samp.team or Cent AI.
+"""Altare relay: Hermes -> http://127.0.0.1:8787/v1 -> Cent AI only.
 
-Upstream is chosen by env var (samp.team wins when set):
-- SAMP_API_KEY set -> https://api.samp.team (model gpt-6-luna).
-- else CENTAI_API_KEY set -> https://api.cent-ai.dev (deepseek-v4.1-flash:free, $0).
+Upstream is Cent AI, model hy4-flash:free ($0, verified working
+2026-11-24). The samp.team lane was REMOVED 2026-11-24 on Bos's
+order ("ubah ke hy4 aja", no paid models): with the samp.team key
+present the relay used to prefer samp.team, whose models all return
+400 unavailable, and Astra is paid. The previous Cent AI fallback
+model (deepseek-v4.1-flash:free) no longer exists (404), which is
+why the bot could not answer at all.
 
-The relay rewrites the requested `model` in chat-completion bodies to the
-model that belongs to the chosen upstream (see UPSTREAM_MODEL below), so
-Hermes keeps working whichever key is set: with the samp.team key present
-the bot talks to samp.team, without it it falls back to Cent AI instead
-of sending an unknown model name to the wrong upstream and breaking.
+The relay rewrites the requested `model` in chat-completion bodies
+to hy4-flash:free (see UPSTREAM_MODEL below), so Hermes keeps
+working whichever model name its config carries.
 
 The key comes from the environment, read once at startup. It is never
 written to a file or a log; it is only attached server-side as the
@@ -20,8 +22,7 @@ Endpoints forwarded: GET /v1/models, POST /v1/chat/completions (both
 streaming SSE and plain JSON). Responses are streamed chunk-by-chunk
 to the client, never buffered whole.
 
-Required env: SAMP_API_KEY or CENTAI_API_KEY (set in Altare as
-an app env var/secret).
+Required env: CENTAI_API_KEY (set in Altare as an app env var/secret).
 """
 import json
 import os
@@ -31,26 +32,18 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 CENTAI_API_KEY = os.environ.get("CENTAI_API_KEY", "")
-SAMP_API_KEY = os.environ.get("SAMP_API_KEY", "")
-if SAMP_API_KEY:
-    HOST = "api.samp.team"
-    API_KEY = SAMP_API_KEY
-elif CENTAI_API_KEY:
+if CENTAI_API_KEY:
     HOST = "api.cent-ai.dev"
     API_KEY = CENTAI_API_KEY
 else:
-    sys.stderr.write("[relay-altare] FATAL: set SAMP_API_KEY or CENTAI_API_KEY env var\n")
+    sys.stderr.write("[relay-altare] FATAL: set CENTAI_API_KEY env var\n")
     sys.stderr.flush()
     sys.exit(1)
 
-# Both upstreams serve their OpenAI-compatible API under /v1, so the
+# Cent AI serves its OpenAI-compatible API under /v1, so the
 # base is just the host; the relay appends the /v1/* path as-is.
 BASE = f"https://{HOST}"
-UPSTREAM_MODEL = (
-    "gpt-6-luna"
-    if HOST == "api.samp.team"
-    else "deepseek-v4.1-flash:free"
-)
+UPSTREAM_MODEL = "hy4-flash:free"
 LISTEN_HOST = "127.0.0.1"
 LISTEN_PORT = 8787
 UA = (
