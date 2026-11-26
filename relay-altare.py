@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Altare relay: Hermes -> http://127.0.0.1:8787/v1 -> CanTrustAI or Cent AI.
+"""Altare relay: Hermes -> http://127.0.0.1:8787/v1 -> Gemini, CanTrustAI or Cent AI.
 
 
-Upstream is CanTrustAI, model anthropic/claude-haiku-5.5, with Cent AI
-(hy4-flash:free) as fallback. The samp.team lane was REMOVED 2026-11-24 on Bos's
+Upstream is Gemini (gemini-2.0-flash) first when GEMINI_API_KEY is set, then CanTrustAI,
+model anthropic/claude-haiku-5.5, then Cent AI (hy4-flash:free) as fallback. The samp.team lane was REMOVED 2026-11-24 on Bos's
 order ("ubah ke hy4 aja", no paid models): with the samp.team key
 present the relay used to prefer samp.team, whose models all return
 400 unavailable, and Astra is paid. The previous Cent AI fallback
@@ -27,7 +27,7 @@ streaming SSE and plain JSON). Responses are streamed chunk-by-chunk
 to the client, never buffered whole.
 
 
-Required env: CANTRUST_API_KEY or CENTAI_API_KEY (set in Altare as an app env var/secret).
+Required env: GEMINI_API_KEY, CANTRUST_API_KEY or CENTAI_API_KEY (set in Altare as an app env var/secret).
 """
 import json
 import os
@@ -37,25 +37,31 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 CANTRUST_API_KEY = os.environ.get("CANTRUST_API_KEY", "")
 CENTAI_API_KEY = os.environ.get("CENTAI_API_KEY", "")
-if CANTRUST_API_KEY:
+if GEMINI_API_KEY:
+    HOST = "generativelanguage.googleapis.com"
+    API_KEY = GEMINI_API_KEY
+    UPSTREAM_MODEL = "gemini-2.0-flash"
+    BASE = "https://generativelanguage.googleapis.com/v1beta/openai"
+    STRIP_V1 = True
+elif CANTRUST_API_KEY:
     HOST = "api.cantrustai.xyz"
     API_KEY = CANTRUST_API_KEY
     UPSTREAM_MODEL = "anthropic/claude-haiku-5.5"
+    BASE = f"https://{HOST}"
+    STRIP_V1 = False
 elif CENTAI_API_KEY:
     HOST = "api.cent-ai.dev"
     API_KEY = CENTAI_API_KEY
     UPSTREAM_MODEL = "hy4-flash:free"
+    BASE = f"https://{HOST}"
+    STRIP_V1 = False
 else:
-    sys.stderr.write("[relay-altare] FATAL: set CANTRUST_API_KEY or CENTAI_API_KEY env var\n")
+    sys.stderr.write("[relay-altare] FATAL: set GEMINI_API_KEY, CANTRUST_API_KEY or CENTAI_API_KEY env var\n")
     sys.stderr.flush()
     sys.exit(1)
-
-
-# Cent AI serves its OpenAI-compatible API under /v1, so the
-# base is just the host; the relay appends the /v1/* path as-is.
-BASE = f"https://{HOST}"
 LISTEN_HOST = "127.0.0.1"
 LISTEN_PORT = 8787
 UA = (
@@ -87,6 +93,8 @@ class Handler(BaseHTTPRequestHandler):
         if not path.startswith("/v1/"):
             self._send_json(404, {"error": {"message": "relay only serves /v1/*", "type": "not_found"}})
             return
+    if STRIP_V1:
+        path = path[3:]
         length = int(self.headers.get("Content-Length") or 0)
         body = self.rfile.read(length) if length else None
         if body:
