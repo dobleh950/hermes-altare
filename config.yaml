@@ -2,26 +2,27 @@ model:
   provider: custom:centai
   base_url: http://127.0.0.1:8787/v1
   api_key: dummy-placeholder-key
-  default: hy4-flash:free
+  default: anthropic/claude-haiku-5.5
 providers:
   openrouter:
     name: openrouter
     base_url: http://127.0.0.1:8787/v1
     api_key: dummy-placeholder-key
-    model: nvidia/nemotron-3-ultra-550b-a55b:free
+    model: anthropic/claude-haiku-5.5
   centai:
     name: centai
     base_url: http://127.0.0.1:8787/v1
     api_key: dummy-placeholder-key
-    model: hy4-flash:free
+    model: anthropic/claude-haiku-5.5
   freemodel:
     name: freemodel
     base_url: http://127.0.0.1:8787/v1
     api_key: dummy-placeholder-key
-    model: gpt-6-astra
+    model: anthropic/claude-haiku-5.5
 platforms:
   telegram:
     enabled: true
 onboarding:
   seen:
     busy_input_prompt: true
+
