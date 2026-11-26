@@ -13,7 +13,7 @@
 # - Restores config.yaml from the repo on every start (repo = source of
 #   truth for the model/provider); seeds the BAW skill and the Telegram
 #   pairing approval on first run only.
-# - Starts the model relay (CanTrustAI if CANTRUST_API_KEY is set, else
+# - Starts the model relay (Gemini if GEMINI_API_KEY is set, else CanTrustAI, else
 #   samp.team, else Cent AI; loopback only) + health server (public $PORT) in the
 #   background, then execs the Telegram gateway in the foreground.
 set -euo pipefail
@@ -38,9 +38,9 @@ fi
 mkdir -p "$HOME/.hermes" "$HOME/.hermes/skills" "$HOME/.hermes/platforms/pairing"
 
 : "${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN env var is required}"
-# Model key: CanTrustAI wins when set, else samp.team, else Cent AI (at least one is needed).
-if [ -z "${CANTRUST_API_KEY:-}" ] && [ -z "${SAMP_API_KEY:-}" ] && [ -z "${CENTAI_API_KEY:-}" ]; then
-  echo "[entrypoint] FATAL: set CANTRUST_API_KEY, SAMP_API_KEY or CENTAI_API_KEY env var" >&2
+# Model key: Gemini wins when set, else CanTrustAI, else samp.team, else Cent AI (at least one is needed).
+if [ -z "${GEMINI_API_KEY:-}" ] && [ -z "${CANTRUST_API_KEY:-}" ] && [ -z "${SAMP_API_KEY:-}" ] && [ -z "${CENTAI_API_KEY:-}" ]; then
+  echo "[entrypoint] FATAL: set GEMINI_API_KEY, CANTRUST_API_KEY, SAMP_API_KEY or CENTAI_API_KEY env var" >&2
   exit 1
 fi
 TELEGRAM_ALLOWED_USERS="${TELEGRAM_ALLOWED_USERS:-1385201625}"
