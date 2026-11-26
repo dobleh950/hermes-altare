@@ -93,8 +93,8 @@ class Handler(BaseHTTPRequestHandler):
         if not path.startswith("/v1/"):
             self._send_json(404, {"error": {"message": "relay only serves /v1/*", "type": "not_found"}})
             return
-    if STRIP_V1:
-        path = path[3:]
+        if STRIP_V1:
+            path = path[3:]
         length = int(self.headers.get("Content-Length") or 0)
         body = self.rfile.read(length) if length else None
         if body:
