@@ -2,23 +2,23 @@ model:
   provider: custom:centai
   base_url: http://127.0.0.1:8787/v1
   api_key: dummy-placeholder-key
-  default: anthropic/claude-haiku-5.5
+  default: gemini-2.0-flash
 providers:
   openrouter:
     name: openrouter
     base_url: http://127.0.0.1:8787/v1
     api_key: dummy-placeholder-key
-    model: anthropic/claude-haiku-5.5
+    model: gemini-2.0-flash
   centai:
     name: centai
     base_url: http://127.0.0.1:8787/v1
     api_key: dummy-placeholder-key
-    model: anthropic/claude-haiku-5.5
+    model: gemini-2.0-flash
   freemodel:
     name: freemodel
     base_url: http://127.0.0.1:8787/v1
     api_key: dummy-placeholder-key
-    model: anthropic/claude-haiku-5.5
+    model: gemini-2.0-flash
 platforms:
   telegram:
     enabled: true
